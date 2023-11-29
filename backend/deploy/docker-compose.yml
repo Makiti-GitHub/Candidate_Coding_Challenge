@@ -1,0 +1,60 @@
+version: '3.7'
+
+networks:
+  back-tier:
+
+services:
+  db:
+    image: mariadb:10.10.2
+    container_name: db
+    ports:
+      - "3306:3306"
+    networks:
+      - back-tier
+    env_file:
+      - ./mariadb/config.env
+    restart: always
+
+  app:
+    build:
+      context: ../
+      dockerfile: ./Dockerfile
+    container_name: app
+    ports:
+      - "8086:8086"
+    depends_on:
+      - db
+    networks:
+      - back-tier
+    env_file:
+      - ./app/config.env
+    restart: always
+
+
+  prometheus:
+    image: prom/prometheus:v2.44.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - app
+    networks:
+      - back-tier
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: always
+
+  grafana:
+    image: grafana/grafana:9.5.2
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - back-tier
+    env_file:
+      - ./grafana/config.env
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+    restart: always

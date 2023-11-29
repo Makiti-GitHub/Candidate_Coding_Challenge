@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration>
+
+<configuration scan="true">
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+    <property name="CLOUD-BANK" value="logs/makiti-test.log"/>
+
+    <appender name="TIME_BASED_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <File>${CLOUD-BANK}</File>
+
+        <!-- Skip eureka message in log -->
+        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
+            <evaluator class="ch.qos.logback.classic.boolex.JaninoEventEvaluator">
+                <expression>return ( logger.contains("com.netflix.discovery.DiscoveryClient") ||
+                    logger.contains("com.netflix.discovery.InstanceInfoReplicator") ||
+                    formattedMessage.contains("eureka") || formattedMessage.contains("DiscoveryClient"));
+                </expression>
+            </evaluator>
+            <OnMismatch>ACCEPT</OnMismatch>
+            <OnMatch>DENY</OnMatch>
+        </filter>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>logs/archived/makiti-test.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- each archived file, size max 10MB -->
+            <!--<maxFileSize>10MB</maxFileSize>-->
+            <!-- it will delete old archived file -->
+            <totalSizeCap>10GB</totalSizeCap>
+            <!-- 60 days to keep -->
+            <!--<maxHistory>60</maxHistory>-->
+        </rollingPolicy>
+
+        <encoder>
+            <charset>utf-8</charset>
+            <pattern>[%d{yyyy-MM-dd'T'HH:mm:ss.sss'Z'}] [%C] [%t] [%L] [%-5p] %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE-ASYNC" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <appender-ref ref="TIME_BASED_FILE"/>
+    </appender>
+
+    <springProfile name="dev">
+        <root>
+            <appender-ref ref='FILE-ASYNC'/>
+            <appender-ref ref="TIME_BASED_FILE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="demo">
+        <root>
+            <appender-ref ref='FILE-ASYNC'/>
+            <appender-ref ref="TIME_BASED_FILE"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="prod">
+        <root>
+            <appender-ref ref='FILE-ASYNC'/>
+            <appender-ref ref="TIME_BASED_FILE"/>
+        </root>
+    </springProfile>
+</configuration>

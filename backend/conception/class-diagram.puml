@@ -1,0 +1,54 @@
+@startuml
+
+class CourseLevel {
+    code: String
+    description: String
+}
+
+class Course {
+    name: String
+    price: Float
+    description: String
+}
+
+class Lecturer {
+    graduation: String
+}
+
+class Appointment {
+    startDate: String
+    endDate: String
+}
+
+class Session {
+    year: Integer
+}
+
+class User {
+    name: String
+    username: String
+    password: String
+}
+
+class Student {
+}
+
+
+class Role {
+}
+
+class Permission {
+
+}
+
+Student --> "1" CourseLevel
+Course --> "1" CourseLevel
+Course "1" --> "n" Appointment
+Lecturer "1" --> "n" Course
+Session "1" --> "n" Appointment
+Student "1" --o "n" Appointment
+User "1" --o "n" Role
+Role "1" --o "n" Permission
+User <|-- Student
+User <|-- Lecturer
+@enduml
