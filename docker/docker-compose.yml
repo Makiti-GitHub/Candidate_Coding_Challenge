@@ -1,0 +1,153 @@
+version: "3.8"
+
+services:
+
+  catalogdb:
+    image: postgres:14.5
+    restart: unless-stopped
+    volumes:
+      - /home/gaelle/Documents/database:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=catalogdb
+      - POSTGRES_USER=catalog
+      - POSTGRES_PASSWORD=catalog
+    ports:
+      - "54321:5432"
+
+  catalog:
+    image: catalog:0.0.1-SNAPSHOT
+    environment:
+      - KAFKA_URL=http://kafka:9092
+      - DB_HOST=catalogdb
+    ports:
+      - "8081:8080"
+#    expose:
+#      - "8080"
+    depends_on:
+      - catalogdb
+      - kafka
+    restart: on-failure
+
+  inventorydb:
+    image: postgres:14.5
+    restart: unless-stopped
+    volumes:
+      - /home/gaelle/Documents/database1:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=inventorydb
+      - POSTGRES_USER=inventory
+      - POSTGRES_PASSWORD=inventory
+    ports:
+      - "54322:5432"
+
+  inventory:
+    image: inventory:0.0.1-SNAPSHOT
+    environment:
+      - KAFKA_URL=http://kafka:9092
+      - DB_HOST=inventorydb
+    ports:
+      - "8082:8080"
+#    expose:
+#      - "8080"
+    depends_on:
+      - inventorydb
+      - kafka
+    restart: on-failure
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://192.168.1.44:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    restart: on-failure
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    restart: on-failure
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.9
+    container_name: elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: false
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    healthcheck:
+      test: "curl -f http://localhost:9200 || exit 1"
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.17.9
+    container_name: logstash
+    restart: unless-stopped
+    ports:
+      - "5044:5044"
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline/
+    depends_on:
+      - elasticsearch
+    healthcheck:
+      test: "curl -f http://localhost:9600 || exit 1"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.9
+    container_name: kibana
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    healthcheck:
+      test: "curl -f http://localhost:5601 || exit 1"
+
+  filebeat:
+    build: filebeat
+    container_name: filebeat
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/usr/share/dockerlogs/data:ro
+    depends_on:
+      - elasticsearch
+      - logstash
+
+  prometheus:
+    image: prom/prometheus:v2.42.0
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "9090" ]
+
+  grafana:
+    image: grafana/grafana:9.3.6
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "3000" ]
