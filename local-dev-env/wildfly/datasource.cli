@@ -1,0 +1,29 @@
+embed-server \
+--server-config=standalone.xml \
+--std-out=echo
+    
+batch
+
+# create the module
+module add \
+--name=org.postgresql \
+--resources=/resources/postgresql.jar \
+--dependencies=javax.api,javax.transaction.api
+
+# create the driver
+/subsystem=datasources/jdbc-driver=postgresql:add(driver-name="postgresql",\
+driver-module-name="org.postgresql",\
+driver-class-name=org.postgresql.Driver)
+
+# create the datasource
+data-source add \
+--name=postgresDS \
+--jndi-name=java:jboss/datasources/postgresDS \
+--connection-url=jdbc:postgresql://postgres:5432/test?stringtype=unspecified \
+--driver-name=postgresql \
+--user-name=makiti \
+--password=makiti
+
+run-batch
+
+stop-embedded-server
