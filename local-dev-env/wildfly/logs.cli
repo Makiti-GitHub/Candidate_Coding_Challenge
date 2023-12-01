@@ -1,0 +1,21 @@
+embed-server \
+--server-config=standalone.xml \
+--std-out=echo
+
+# format logs into JSON
+/subsystem=logging/json-formatter=LOG-STASH:add(\
+key-overrides={timestamp=@timestamp,message=@message,logger-name=@source,host-name=@source_host},\
+exception-output-type=formatted)
+
+# create a socket to connect with logstash01 container
+/socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=log-stash:add(host=logstash01, port=9801)
+
+# connect logging subsystem to logstash socket
+/subsystem=logging/socket-handler=LOGSTASH-SOCKET:add(named-formatter=LOG-STASH,\
+outbound-socket-binding-ref=log-stash,\
+level=DEBUG)
+
+/subsystem=logging/async-handler=LOGSTASH-ASYNC:add(queue-length=512, subhandlers=[LOGSTASH-SOCKET])
+/subsystem=logging/root-logger=ROOT:add-handler(name=LOGSTASH-ASYNC)
+
+stop-embedded-server
