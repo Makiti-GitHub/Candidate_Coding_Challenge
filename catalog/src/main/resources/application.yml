@@ -1,0 +1,34 @@
+server:
+  port: 8080
+spring:
+  security:
+    enabled: false
+  application:
+    name: catalog
+  datasource:
+    url: jdbc:${DB_VENDOR:postgresql}://${DB_HOST:0.0.0.0}:${DB_PORT:54321}/${DB_DATABASE:catalogdb}
+    username: ${DB_USER:catalog}
+    password: ${DB_USER_PASSWORD:catalog}
+    driver-class-name: ${DB_JDBC_DRIVER_CLASS_NAME:org.postgresql.Driver}
+
+  liquibase:
+    change-log: classpath:/db/changelog/master.xml
+    enabled: true
+    contexts: ${LIQUIBASE_CONTEXT:dev}
+
+  cloud:
+    discovery:
+      reactive:
+        enabled: false
+    stream:
+      bindings:
+        item-out-0:
+          destination: item
+          group: ${spring.application.name}
+      kafka:
+        binder:
+          brokers: ${KAFKA_URL:0.0.0.0:29092}
+    config:
+      discovery:
+        enabled: false
+      enabled: false

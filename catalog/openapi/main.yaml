@@ -1,0 +1,169 @@
+openapi: 3.0.3
+info:
+  title: CATALOG Rest API
+  description: All Item Rest API End Poinds
+  version: 0.0.1
+servers:
+  - url: 'https'
+  - url: 'http'
+tags:
+  - name: Item
+    description: Everything about the Items
+paths:
+  /item:
+    post:
+      tags:
+        - Item
+      summary: Create a new item
+      description: Create a new item
+      operationId: createItem
+      security:
+        - oAuth:
+            - item:create
+      requestBody:
+        description: Item object that need to be create
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemDTO'
+      responses:
+        201:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+                format: uuid
+        400:
+          description: Invalid input
+    get:
+      tags:
+        - Item
+      summary: Fetch all items
+      description: Fetch all items
+      operationId: getAllItems
+      security:
+        - oAuth:
+            - item:read
+      parameters:
+        - name: fieldsToExtractCode
+          in: query
+          required: true
+          schema:
+            type: string
+          description: specify the fields that will be present the response
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ItemDTO'
+  /item/{id}:
+    get:
+      tags:
+        - Item
+      summary: Finds item by id
+      description: Finds item by id
+      operationId: getItemById
+      security:
+        - oAuth:
+            - item:read
+      parameters:
+        - name: id
+          in: path
+          description: Item id to be fetch
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fieldsToExtractCode
+          in: query
+          required: true
+          schema:
+            type: string
+          description: specify the fields that will be present the response
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ItemDTO'
+        404:
+          description: Item not found
+    put:
+      tags:
+        - Item
+      summary: update a item
+      description: update a item
+      operationId: updateItem
+      security:
+        - oAuth:
+            - item:edit
+      parameters:
+        - name: id
+          in: path
+          description: item id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Item object that need to be update
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ItemDTO'
+      responses:
+        201:
+          description: successful operation
+        400:
+          description: Invalid input
+        404:
+          description: Item not found
+
+components:
+  securitySchemes:
+    oAuth:
+      type: oauth2
+      description: This API uses OAuth 2 with the Authorization Code grant flow.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.oauth.lao-sarl.cm
+          tokenUrl: https://token.oauth.lao-sarl.cm
+          scopes:
+            item:read: Read the Item
+            item:create: Add new Item
+            item:edit: Modify an existing Item
+            item:delete: Delete an existing Item
+  schemas:
+    ItemTypeDTO:
+      type: string
+      description: item's type
+      enum:
+        - INVENTORY
+        - SERVICE
+    ItemDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: identifier
+        name:
+          type: string
+          description: item's name
+        description:
+          type: string
+          description: item's description
+        type:
+          $ref: '#/components/schemas/ItemTypeDTO'
+        barcode:
+          type: string
+          description: item barcode
+
