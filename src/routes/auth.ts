@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { User } from "../models/model";
+import { IUser, User } from "../models/model";
 import * as jwt from "jsonwebtoken";
 import HttpError from "../utils/errorHandler";
+
 const router = Router();
 
-let users: User[] = [
+let users: IUser[] = [
   {
     id: "13231",
     email: "ivan.donfack@yahoo.fr",
@@ -22,10 +23,10 @@ type loginReqBody = {
   password: string;
 };
 
-router.post("/login", (req, res, next) => {
+router.post("/login", async (req, res, next) => {
   try {
     const body = req.body as loginReqBody;
-    let user = users.find((u) => u.email === body.email);
+    const user = await User.findOne({ email: body.email });
     if (!user) {
       return next(new HttpError("user_not_found", 404));
     }
@@ -41,30 +42,34 @@ router.post("/login", (req, res, next) => {
       "secret123",
       { expiresIn: "1h" }
     );
-    user.idToken = token;
-    user.expiresIn = "3600"
-    setTimeout(() => res.status(201).json(user), 3500);
+    
+    const resUser = {
+      id: user._id,
+      email: user.email,
+      expiresIn: "3600",
+      idToken: token,
+    };
+
+    res.status(201).json(resUser);
   } catch (err: any) {
     return next(new HttpError(err, 500));
   }
 });
 
-router.post("/signup", (req, res, next) => {
+router.post("/signup", async (req, res, next) => {
   const body = req.body as loginReqBody;
-  const id = Date.now().toString();
-  let user = users.find((u) => u.email === body.email);
-  if (user) {
+  const existingUser = await User.findOne({ email: body.email });
+  if (existingUser) {
     return next(new HttpError("email_exist", 401));
   }
   if (body.password.length < 5) {
     return next(new HttpError("weak_password", 403));
   }
-  let newUser: User = {
-    id: id,
+  const user = new User({
     email: body.email,
     password: body.password,
-  };
-  users.push(newUser);
+  });
+  const newUser = await user.save();
   const token = jwt.sign(
     {
       email: newUser.email,
@@ -73,9 +78,13 @@ router.post("/signup", (req, res, next) => {
     "secret123",
     { expiresIn: "1h" }
   );
-  newUser.idToken = token;
-  newUser.expiresIn = "3600"
-  setTimeout(() => res.status(201).json(newUser), 3500);
+  const resUser = {
+    id: newUser._id,
+    email: newUser.email,
+    expiresIn: "3600",
+    idToken: token,
+  };
+  res.status(201).json(resUser);
 });
 
 export default router;
