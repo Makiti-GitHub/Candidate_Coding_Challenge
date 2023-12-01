@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.6.xsd">
+    <changeSet id="catalog-1:1" author="cedric.gueubruers" context="dev">
+        <createTable tableName="t_product">
+            <column name="c_type" type="VARCHAR(255)"/>
+            <column name="c_barcode" type="VARCHAR(255)"/>
+            <column name="c_id" type="VARCHAR(255)">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_t_item"/>
+            </column>
+            <column name="c_name" type="VARCHAR(255)"/>
+            <column name="c_description" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

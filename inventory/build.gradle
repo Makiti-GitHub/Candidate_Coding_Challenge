@@ -1,0 +1,145 @@
+
+buildscript {
+	dependencies {
+		classpath("org.openapitools:openapi-generator-gradle-plugin:7.1.0")
+	}
+}
+
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.0.2'
+	id 'io.spring.dependency-management' version '1.1.4'
+	id "org.openapi.generator" version "6.3.0"
+	id 'com.google.cloud.tools.jib' version '3.2.0'
+}
+
+group = 'de.makiti'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	sourceCompatibility = '17'
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:2022.0.0"
+	}
+}
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
+	implementation("org.springframework.boot:spring-boot-starter-oauth2-resource-server")
+
+
+	implementation 'org.liquibase:liquibase-core'
+	compileOnly("jakarta.servlet:jakarta.servlet-api:6.0.0")
+	implementation 'org.junit.jupiter:junit-jupiter:5.8.1'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+	implementation('org.springframework.cloud:spring-cloud-starter')
+	implementation('org.springframework.cloud:spring-cloud-starter-bus-kafka')
+	implementation('org.springframework.cloud:spring-cloud-starter-config')
+	implementation('org.springframework.cloud:spring-cloud-starter-kubernetes-discoveryclient')
+	implementation('org.springframework.cloud:spring-cloud-starter-bootstrap')
+	testImplementation('org.springframework.cloud:spring-cloud-starter-contract-stub-runner')
+
+	// Security
+	testImplementation("org.springframework.security:spring-security-test")
+
+	// DB
+	implementation("org.postgresql:postgresql")
+	testImplementation("org.testcontainers:postgresql:1.18.3")
+	testImplementation("org.testcontainers:junit-jupiter:1.18.3") {
+		exclude(group: 'org.junit.vintage', module: 'junit-vintage-engine')
+	}
+
+	// OPENAPI
+	implementation('io.swagger:swagger-annotations:1.6.11')
+	implementation('org.openapitools:jackson-databind-nullable:0.2.6')
+	implementation('org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0')
+
+	// Lombok
+	compileOnly("org.projectlombok:lombok")
+	annotationProcessor("org.projectlombok:lombok")
+	testCompileOnly("org.projectlombok:lombok")
+	testAnnotationProcessor("org.projectlombok:lombok")
+
+	// Mapstruct
+	implementation("org.mapstruct:mapstruct:1.5.5.Final")
+	annotationProcessor("org.mapstruct:mapstruct-processor:1.5.5.Final")
+	testAnnotationProcessor("org.mapstruct:mapstruct-processor:1.5.5.Final")
+
+	testImplementation("org.springframework.boot:spring-boot-starter-test")
+	testImplementation("org.springframework.boot:spring-boot-starter-webflux")
+	testImplementation("org.mockito:mockito-inline:5.2.0")
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+openApiGenerate {
+	generatorName = "spring"
+	inputSpec = "$rootDir/openapi/main.yaml".toString()
+	outputDir = "$buildDir/generated/sources/openapi".toString()
+	apiPackage = "de.makiti.inventory.api"
+	modelPackage = "de.makiti.inventory.dto"
+	configOptions = [
+			dateLibrary         : "java8-localdatetime",
+			library             : "spring-boot",
+			interfaceOnly       : "true",
+			useTags             : "true",
+			skipDefaultInterface: "true",
+			useSpringBoot3 : "true"
+	]
+}
+import org.openapitools.generator.gradle.plugin.tasks.GenerateTask
+
+tasks.register('catalogOpenApiGenerate', GenerateTask) {
+	generatorName = "spring"
+	inputSpec = "$rootDir/openapi/catalog.yaml".toString()
+	outputDir = "$buildDir/generated/sources/openapi".toString()
+	apiPackage = "de.makiti.catalog.api"
+	modelPackage = "de.makiti.catalog.dto"
+	modelNamePrefix = "Catalog"
+	configOptions = [
+			dateLibrary         : "java8-localdatetime",
+			library             : "spring-boot",
+			interfaceOnly       : "true",
+			useTags             : "true",
+			skipDefaultInterface: "true",
+			useSpringBoot3 : "true"
+	]
+}
+
+
+compileJava.dependsOn(
+		tasks.openApiGenerate,
+		tasks.catalogOpenApiGenerate
+)
+sourceSets.main.java.srcDir "${buildDir}/generated/sources/openapi/src/main/java"
+
+jib {
+	def imageNamePrefix = Objects.isNull(System.getenv('DOCKER_REPOSITORY')) ? "" : "${System.env.DOCKER_REPOSITORY}/"
+	from {
+		image = "eclipse-temurin:17-jdk-alpine"
+	}
+	to {
+		image = "${imageNamePrefix}${project.name}:${project.version}"
+	}
+	container {
+		creationTime = 'USE_CURRENT_TIMESTAMP'
+	}
+}

@@ -1,0 +1,36 @@
+server:
+  port: 8080
+spring:
+  security:
+    enabled: false
+  application:
+    name: inventory
+  datasource:
+    url: jdbc:${DB_VENDOR:postgresql}://${DB_HOST:0.0.0.0}:${DB_PORT:5432}/${DB_DATABASE:inventorydb}
+    username: ${DB_USER:inventory}
+    password: ${DB_USER_PASSWORD:inventory}
+    driver-class-name: ${DB_JDBC_DRIVER_CLASS_NAME:org.postgresql.Driver}
+
+  liquibase:
+    change-log: classpath:/db/changelog/master.xml
+    enabled: true
+    contexts: ${LIQUIBASE_CONTEXT:dev}
+
+  cloud:
+    function:
+      definition: item
+    discovery:
+      reactive:
+        enabled: false
+    stream:
+      bindings:
+        item-in-0:
+          destination: item
+          group: ${spring.application.name}
+      kafka:
+        binder:
+          brokers: ${KAFKA_URL:0.0.0.0:29092}
+    config:
+      discovery:
+        enabled: false
+      enabled: false
