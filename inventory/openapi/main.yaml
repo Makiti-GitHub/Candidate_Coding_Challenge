@@ -1,0 +1,96 @@
+openapi: 3.0.3
+info:
+  title: INVENTORY Rest API
+  description: All inventory Rest API End Poinds
+  version: 0.0.1
+servers:
+  - url: 'https'
+  - url: 'http'
+tags:
+  - name: Product
+    description: Everything about the Products
+paths:
+  /product:
+    get:
+      tags:
+        - Product
+      summary: Fetch all products
+      description: Fetch all products
+      operationId: getAllProducts
+      security:
+        - oAuth:
+            - product:read
+      parameters:
+        - name: fieldsToExtractCode
+          in: query
+          required: true
+          schema:
+            type: string
+          description: specify the fields that will be present the response
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductDTO'
+  /product/{id}:
+    get:
+      tags:
+        - Product
+      summary: Finds product by id
+      description: Finds product by id
+      operationId: getProductById
+      parameters:
+        - name: id
+          in: path
+          description: Product id to be fetch
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: fieldsToExtractCode
+          in: query
+          required: true
+          schema:
+            type: string
+          description: specify the fields that will be present the response
+      responses:
+        200:
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDTO'
+        404:
+          description: Product not found
+
+components:
+  schemas:
+    ProductTypeDTO:
+      type: string
+      description: product's type
+      enum:
+        - INVENTORY
+        - SERVICE
+    ProductDTO:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: identifier
+        name:
+          type: string
+          description: product's name
+        description:
+          type: string
+          description: product's description
+        type:
+          $ref: '#/components/schemas/ProductTypeDTO'
+        barcode:
+          type: string
+          description: product barcode
+
