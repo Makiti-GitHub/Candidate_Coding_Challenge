@@ -1,0 +1,46 @@
+version: '3'
+services:
+  microservice1:
+    build:
+      context: ./flask_message
+    ports:
+      - "5001:5000"
+    container_name: flask_message_service
+    networks:
+      - my_network
+    environment:
+      - ENVIRONMENT=development
+
+  microservice2:
+    build:
+      context: ./microservice2
+    ports:
+      - "5002:80"
+    container_name: microservice2_service
+    networks:
+      - my_network
+    environment:
+      - ENVIRONMENT=production
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    container_name: prometheus_service
+    networks:
+      - my_network
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    container_name: grafana_service
+    networks:
+      - my_network
+    depends_on:
+      - prometheus
+
+networks:
+  my_network:
